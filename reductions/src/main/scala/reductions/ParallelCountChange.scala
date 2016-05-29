@@ -14,7 +14,7 @@ object ParallelCountChangeRunner {
     Key.exec.maxWarmupRuns -> 40,
     Key.exec.benchRuns -> 80,
     Key.verbose -> true
-  ) withWarmer(new Warmer.Default)
+  ) withWarmer (new Warmer.Default)
 
   def main(args: Array[String]): Unit = {
     val amount = 250
@@ -43,32 +43,37 @@ object ParallelCountChangeRunner {
 object ParallelCountChange {
 
   /** Returns the number of ways change can be made from the specified list of
-   *  coins for the specified amount of money.
-   */
+    * coins for the specified amount of money.
+    */
   def countChange(money: Int, coins: List[Int]): Int = {
-    ???
+    if (money == 0) 1
+    else if (money < 0 || coins.isEmpty) 0
+    else countChange(money, coins.tail) + countChange(money - coins.head, coins)
   }
 
   type Threshold = (Int, List[Int]) => Boolean
 
   /** In parallel, counts the number of ways change can be made from the
-   *  specified list of coins for the specified amount of money.
-   */
+    * specified list of coins for the specified amount of money.
+    */
   def parCountChange(money: Int, coins: List[Int], threshold: Threshold): Int = {
-    ???
+    if (threshold(money, coins) || coins.isEmpty || money <= coins.length) countChange(money, coins)
+    else {
+      val (right, left) = parallel(parCountChange(money - coins.head, coins, threshold),
+        parCountChange(money, coins.tail, threshold))
+      right + left
+    }
   }
 
   /** Threshold heuristic based on the starting money. */
-  def moneyThreshold(startingMoney: Int): Threshold =
-    ???
+  def moneyThreshold(startingMoney: Int): Threshold = (money, _) => money <= startingMoney * 2.0 / 3.0
 
   /** Threshold heuristic based on the total number of initial coins. */
-  def totalCoinsThreshold(totalCoins: Int): Threshold =
-    ???
+  def totalCoinsThreshold(totalCoins: Int): Threshold = (_, coins) => coins.length <= totalCoins * 2.0 / 3.0
 
 
   /** Threshold heuristic based on the starting money and the initial list of coins. */
   def combinedThreshold(startingMoney: Int, allCoins: List[Int]): Threshold = {
-    ???
+    (money, coins) => money * coins.length <= startingMoney * allCoins.length * 0.5
   }
 }
