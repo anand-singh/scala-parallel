@@ -42,10 +42,15 @@ class KMeans {
   }
 
   def classify(points: GenSeq[Point], means: GenSeq[Point]): GenMap[Point, GenSeq[Point]] = {
-    ???
+    means.map {
+      (_, GenSeq())
+    }.toMap ++ points.groupBy {
+      findClosest(_, means)
+    }
   }
 
-  def findAverage(oldMean: Point, points: GenSeq[Point]): Point = if (points.length == 0) oldMean else {
+  def findAverage(oldMean: Point, points: GenSeq[Point]): Point = if (points.length == 0) oldMean
+  else {
     var x = 0.0
     var y = 0.0
     var z = 0.0
@@ -58,28 +63,35 @@ class KMeans {
   }
 
   def update(classified: GenMap[Point, GenSeq[Point]], oldMeans: GenSeq[Point]): GenSeq[Point] = {
-    ???
+    oldMeans.map(m => findAverage(m, classified(m)))
   }
 
   def converged(eta: Double)(oldMeans: GenSeq[Point], newMeans: GenSeq[Point]): Boolean = {
-    ???
+    oldMeans.zip(newMeans).forall { case (o, n) => o.squareDistance(n) <= eta }
   }
 
   final def kMeans(points: GenSeq[Point], means: GenSeq[Point], eta: Double): GenSeq[Point] = {
-    ???
+    val classified: GenMap[Point, GenSeq[Point]] = classify(points, means)
+    val updatedMeans: GenSeq[Point] = update(classified, means)
+
+    if (converged(eta)(means, updatedMeans)) updatedMeans
+    else kMeans(points, updatedMeans, eta)
   }
 }
 
 /** Describes one point in three-dimensional space.
- *
- *  Note: deliberately uses reference equality.
- */
+  *
+  * Note: deliberately uses reference equality.
+  */
 class Point(val x: Double, val y: Double, val z: Double) {
   private def square(v: Double): Double = v * v
+
   def squareDistance(that: Point): Double = {
-    square(that.x - x)  + square(that.y - y) + square(that.z - z)
+    square(that.x - x) + square(that.y - y) + square(that.z - z)
   }
+
   private def round(v: Double): Double = (v * 100).toInt / 100.0
+
   override def toString = s"(${round(x)}, ${round(y)}, ${round(z)})"
 }
 
@@ -91,7 +103,7 @@ object KMeansRunner {
     Key.exec.maxWarmupRuns -> 40,
     Key.exec.benchRuns -> 25,
     Key.verbose -> true
-  ) withWarmer(new Warmer.Default)
+  ) withWarmer (new Warmer.Default)
 
   def main(args: Array[String]) {
     val kMeans = new KMeans()
